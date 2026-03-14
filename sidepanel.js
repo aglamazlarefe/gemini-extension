@@ -1,4 +1,4 @@
-console.log('Gemini Extension v3.2 Active - sidepanel.js');
+console.log('Gemini Extension v3.4 Active - sidepanel.js');
 
 const iframe = document.getElementById('geminiFrame');
 const refreshBtn = document.getElementById('refreshBtn');
@@ -9,7 +9,7 @@ chrome.storage.local.get(['lastGeminiUrl'], (result) => {
   iframe.src = result.lastGeminiUrl || DEFAULT_URL;
 });
 
-// Sync iframe on storage changes
+// Sync iframe on storage changes (For Alt+Q new chat force)
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.lastGeminiUrl) {
         iframe.src = changes.lastGeminiUrl.newValue;
@@ -20,7 +20,7 @@ refreshBtn.addEventListener('click', () => {
     iframe.src = iframe.src; 
 });
 
-// --- CROSS-FRAME PROMPT INJECTION (v3.2) ---
+// --- TOOLBAR LOGIC (v3.4) ---
 
 const templates = {
     summarize: "Aşağıdaki içeriği en önemli noktalarıyla özetle: ",
@@ -29,31 +29,11 @@ const templates = {
     think: "Bu konuyu bir araştırmacı gözüyle teknik olarak analiz et: "
 };
 
-/**
- * Injection Function to be run in all frames of the active tab (targeting the Gemini iframe)
- */
-function geminiFrameInjector(fullPrompt) {
-    const inputField = document.querySelector('div[contenteditable="true"]') || document.querySelector('textarea');
-    if (inputField && inputField.offsetParent !== null) {
-        inputField.focus();
-        // Clear old content if necessary, though insertText usually handles it
-        document.execCommand('insertText', false, fullPrompt);
-        
-        // Auto-submit after a small delay
-        setTimeout(() => {
-            const sendButton = document.querySelector('button[aria-label*="Send"], button[aria-label*="Gönder"], .send-button');
-            if (sendButton) sendButton.click();
-        }, 500);
-        return true;
-    }
-    return false;
-}
-
 async function handleToolbarClick(type) {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     if (!tab) return;
 
-    // Get the base text from storage (pendingPrompt) or selection
+    // Get the base text from storage (pendingPrompt) or capture from page
     chrome.storage.local.get(['pendingPrompt'], async (result) => {
         let baseText = result.pendingPrompt || "";
         
@@ -65,18 +45,15 @@ async function handleToolbarClick(type) {
                     func: () => window.getSelection().toString() || document.body.innerText
                 });
                 baseText = res[0]?.result || "";
-            } catch (e) {}
+            } catch (e) {
+                console.warn('Failed to capture context from page.');
+            }
         }
 
         if (baseText) {
-            const fullPrompt = templates[type] + baseText;
-            
-            // INJECT INTO ALL FRAMES (to reach the Gemini iframe cross-origin)
-            chrome.scripting.executeScript({
-                target: { tabId: tab.id, allFrames: true },
-                func: geminiFrameInjector,
-                args: [fullPrompt]
-            });
+            const finalPrompt = templates[type] + baseText;
+            // Update storage - content_script.js will see this and attempt injection in all Gemini instances
+            chrome.storage.local.set({ pendingPrompt: finalPrompt });
         }
     });
 }
