@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Gemini Side Panel",
-  "version": "1.4",
-  "description": "Opens Gemini in the side panel with advanced features like persistence and automatic prompt injection.",
+  "version": "1.5",
+  "description": "Opens Gemini in the side panel with robust prompt injection and session persistence.",
   "permissions": [
     "sidePanel",
     "declarativeNetRequest",
@@ -10,11 +10,10 @@
     "storage",
     "contextMenus",
     "clipboardWrite",
-    "scripting",
-    "activeTab"
+    "scripting"
   ],
   "host_permissions": [
-    "*://*.google.com/*"
+    "https://gemini.google.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -33,5 +32,12 @@
         "path": "rules.json"
       }
     ]
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://gemini.google.com/*"],
+      "js": ["content_script.js"],
+      "all_frames": true
+    }
+  ]
 }
