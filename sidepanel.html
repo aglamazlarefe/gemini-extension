@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Gemini Side Panel</title>
   <style>
     :root {
       --bg-color: #f1f3f4;
-      --text-color: #000;
+      --text-color: #3c4043;
       --toolbar-bg: #ffffff;
-      --border-color: #ddd;
+      --border-color: #bdc1c6;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -15,7 +16,7 @@
         --bg-color: #1e1e1e;
         --text-color: #e8eaed;
         --toolbar-bg: #2d2d2d;
-        --border-color: #444;
+        --border-color: #3c4043;
       }
     }
 
@@ -29,33 +30,47 @@
       flex-direction: column;
       background-color: var(--bg-color);
       color: var(--text-color);
-      font-family: sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     #toolbar {
-      height: 40px;
+      height: 48px;
       background-color: var(--toolbar-bg);
       display: flex;
       align-items: center;
-      padding: 0 10px;
+      padding: 0 16px;
       border-bottom: 1px solid var(--border-color);
       justify-content: space-between;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
+    #toolbar span {
+      font-weight: 600;
+      font-size: 14px;
     }
 
     #toolbar button {
       background: none;
       border: none;
       color: var(--text-color);
-      font-size: 20px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      padding: 5px;
-      border-radius: 4px;
+      justify-content: center;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background-color 0.2s;
     }
 
     #toolbar button:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(60, 64, 67, 0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      #toolbar button:hover {
+        background-color: rgba(232, 234, 237, 0.08);
+      }
     }
 
     #container {
@@ -68,15 +83,25 @@
       height: 100%;
       border: none;
     }
+
+    .icon {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
   </style>
 </head>
 <body>
   <div id="toolbar">
     <span>Gemini</span>
-    <button id="refreshBtn" title="Refresh">⟳</button>
+    <button id="refreshBtn" title="Refresh">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+      </svg>
+    </button>
   </div>
   <div id="container">
-    <iframe id="geminiFrame" src="about:blank"></iframe>
+    <iframe id="geminiFrame" src="https://gemini.google.com/app"></iframe>
   </div>
 
   <script>
@@ -84,49 +109,38 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const DEFAULT_URL = "https://gemini.google.com/app";
 
-    // Load URL from storage or default
+    // Restore state from storage
     chrome.storage.local.get(['lastUrl', 'lastSelectedText'], (result) => {
-      const targetUrl = result.lastUrl || DEFAULT_URL;
-      iframe.src = targetUrl;
+      if (result.lastUrl && result.lastUrl !== DEFAULT_URL) {
+        iframe.src = result.lastUrl;
+      }
 
       if (result.lastSelectedText) {
-        // Copy selection to clipboard if it exists
         navigator.clipboard.writeText(result.lastSelectedText).then(() => {
-          console.log('Selection copied to clipboard');
-          // Clear it so it doesn't copy again on manual refresh
           chrome.storage.local.remove('lastSelectedText');
         });
       }
     });
 
-    // Save URL on load
-    iframe.addEventListener('load', () => {
+    // Save URL periodically and on load
+    const saveUrl = () => {
       try {
         const currentUrl = iframe.contentWindow.location.href;
-        if (currentUrl && currentUrl !== 'about:blank') {
+        if (currentUrl && currentUrl.startsWith('http')) {
           chrome.storage.local.set({ lastUrl: currentUrl });
         }
       } catch (e) {
-        // Cross-origin prevents reading location.href directly if it navigates away from allowed domains
-        // But since we are proxying Gemini, it should work for gemini.google.com
-        console.log('Cannot read iframe URL due to cross-origin policy, saving base URL if possible');
+        // Fallback: we know it's Gemini
       }
-    });
+    };
+
+    iframe.addEventListener('load', saveUrl);
+    setInterval(saveUrl, 5000);
 
     // Refresh button
     refreshBtn.addEventListener('click', () => {
       iframe.src = iframe.src;
     });
-
-    // Periodically poll for URL if possible (fallback for navigation tracking)
-    setInterval(() => {
-        try {
-            const currentUrl = iframe.contentWindow.location.href;
-            if (currentUrl && currentUrl !== 'about:blank') {
-                chrome.storage.local.set({ lastUrl: currentUrl });
-            }
-        } catch (e) {}
-    }, 5000);
   </script>
 </body>
 </html>
