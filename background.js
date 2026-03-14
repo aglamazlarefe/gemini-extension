@@ -24,7 +24,11 @@ chrome.runtime.onStartup.addListener(() => {
   });
 });
 
-// Handle URL updates from content script
+/**
+ * SILENT URL STORAGE (v3.5)
+ * We save the URL for state restoration on NEXT open,
+ * but we do NOT notify the side panel to navigate immediately to avoid reload loops.
+ */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "UPDATE_LAST_URL" && message.url) {
     if (message.url.includes('gemini.google.com')) {
@@ -42,22 +46,16 @@ function isRestrictedUrl(url) {
            url.startsWith('view-source:');
 }
 
-/**
- * v3.3 STRICT GESTURE HANDLING
- * We must NOT await anything before chrome.sidePanel.open()
- */
-
 // Handle Keyboard Commands
 chrome.commands.onCommand.addListener((command, tab) => {
     if (!tab) return;
     
     if (command === "explain-selection") {
-        // 1. SYNC OPEN: This preserves the user gesture token
+        // SYNC OPEN
         chrome.sidePanel.open({ windowId: tab.windowId }).catch(e => console.error(e));
 
-        // 2. ASYNC LOGIC: Runs after the panel open command
         (async () => {
-            // Force New Chat
+            // Force New Chat on open
             chrome.storage.local.set({ lastGeminiUrl: "https://gemini.google.com/app" });
 
             if (isRestrictedUrl(tab.url)) return;
@@ -92,12 +90,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!tab) return;
 
   if (info.menuItemId === "explainWithGemini") {
-    // 1. SYNC OPEN
+    // SYNC OPEN
     chrome.sidePanel.open({ windowId: tab.windowId }).catch((error) => {
       console.error('SidePanel failed to open:', error);
     });
 
-    // 2. ASYNC LOGIC
     (async () => {
         if (isRestrictedUrl(tab.url)) return;
 

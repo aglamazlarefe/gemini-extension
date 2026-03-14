@@ -1,26 +1,24 @@
-console.log('Gemini Extension v3.4 Active - sidepanel.js');
+console.log('Gemini Extension v3.5 Active - sidepanel.js');
 
 const iframe = document.getElementById('geminiFrame');
 const refreshBtn = document.getElementById('refreshBtn');
 const DEFAULT_URL = "https://gemini.google.com/app";
 
-// Initial load
+/**
+ * INITIALIZATION-ONLY LOAD (v3.5)
+ * To prevent infinite reload loops, we ONLY set the iframe src on load.
+ * We removed the reactive listener for chrome.storage.onChanged.
+ */
 chrome.storage.local.get(['lastGeminiUrl'], (result) => {
   iframe.src = result.lastGeminiUrl || DEFAULT_URL;
 });
 
-// Sync iframe on storage changes (For Alt+Q new chat force)
-chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.lastGeminiUrl) {
-        iframe.src = changes.lastGeminiUrl.newValue;
-    }
-});
-
 refreshBtn.addEventListener('click', () => {
+    // Standard manual refresh
     iframe.src = iframe.src; 
 });
 
-// --- TOOLBAR LOGIC (v3.4) ---
+// --- TOOLBAR LOGIC ---
 
 const templates = {
     summarize: "Aşağıdaki içeriği en önemli noktalarıyla özetle: ",
@@ -30,14 +28,14 @@ const templates = {
 };
 
 async function handleToolbarClick(type) {
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    // Robustly get active tab
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
     if (!tab) return;
 
-    // Get the base text from storage (pendingPrompt) or capture from page
     chrome.storage.local.get(['pendingPrompt'], async (result) => {
         let baseText = result.pendingPrompt || "";
         
-        // If storage empty, try to grab selection/page text
         if (!baseText && !tab.url.startsWith('chrome')) {
             try {
                 const res = await chrome.scripting.executeScript({
@@ -52,7 +50,6 @@ async function handleToolbarClick(type) {
 
         if (baseText) {
             const finalPrompt = templates[type] + baseText;
-            // Update storage - content_script.js will see this and attempt injection in all Gemini instances
             chrome.storage.local.set({ pendingPrompt: finalPrompt });
         }
     });
