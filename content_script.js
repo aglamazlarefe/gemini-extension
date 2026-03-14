@@ -50,17 +50,18 @@ function injectPromptWithRetry(promptText) {
 
           // EVENT DISPATCHING (React/Angular Compatibility)
           // Using bubbles: true is critical for internal state recognition
-          ['input', 'change', 'blur', 'keyup'].forEach(type => {
-            inputField.dispatchEvent(new Event(type, { bubbles: true }));
+          ['input', 'change', 'blur', 'keyup', 'keydown'].forEach(type => {
+            const event = new Event(type, { bubbles: true, cancelable: true });
+            inputField.dispatchEvent(event);
           });
 
           // AUTO-SUBMIT
           setTimeout(() => {
               const sendButton = document.querySelector('button[aria-label*="Send"], button[aria-label*="Gönder"], .send-button');
-              if (sendButton) {
+              if (sendButton && !sendButton.disabled) {
                   sendButton.click();
               }
-          }, 600);
+          }, 800);
 
           chrome.storage.local.remove('pendingPrompt');
           return true;

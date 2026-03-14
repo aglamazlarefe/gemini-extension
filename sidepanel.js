@@ -60,15 +60,34 @@ document.getElementById('btn-yks').addEventListener('click', () => handleToolbar
 document.getElementById('btn-code').addEventListener('click', () => handleToolbarClick('code'));
 document.getElementById('btn-think').addEventListener('click', () => handleToolbarClick('think'));
 
-// --- DRAG AND DROP INJECTION (v3.6) ---
+// --- DRAG AND DROP INJECTION (v3.7) ---
+
+// We use pointer-events: none on the iframe during dragover 
+// to allow the side panel window to receive the drop event.
+window.addEventListener('dragenter', (e) => {
+    iframe.style.pointerEvents = 'none';
+});
 
 window.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
 });
 
+// Restore pointer events if the drag leaves or is cancelled
+window.addEventListener('dragend', () => {
+    iframe.style.pointerEvents = 'auto';
+});
+
+window.addEventListener('dragleave', (e) => {
+    if (e.relatedTarget === null) {
+        iframe.style.pointerEvents = 'auto';
+    }
+});
+
 window.addEventListener('drop', (e) => {
     e.preventDefault();
+    iframe.style.pointerEvents = 'auto';
+    
     const droppedText = e.dataTransfer.getData('text');
     if (droppedText) {
         console.log('Gemini Extension: Text dropped, injecting...');
