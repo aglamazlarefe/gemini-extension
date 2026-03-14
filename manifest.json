@@ -26,7 +26,12 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Open Gemini Side Panel"
+    "default_title": "Open Gemini Side Panel",
+    "default_icon": {
+      "16": "icon.jpg",
+      "48": "icon.jpg",
+      "128": "icon.jpg"
+    }
   },
   "side_panel": {
     "default_path": "sidepanel.html"
