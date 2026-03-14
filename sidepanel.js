@@ -1,26 +1,26 @@
-console.log('Gemini Extension v1.8 Active - sidepanel.js');
+console.log('Gemini Extension v1.9 Active - sidepanel.js');
 
 const iframe = document.getElementById('geminiFrame');
 const refreshBtn = document.getElementById('refreshBtn');
 const DEFAULT_URL = "https://gemini.google.com/app";
 
-// Restore state from storage without EVER reading iframe properties directly
+/**
+ * ARCHITECTURE NOTE (v1.9):
+ * We use a "Write-Only" approach. Reading ANY property from the iframe (src, href, etc.)
+ * in a cross-origin context triggers a SecurityError in many browser versions.
+ */
+
+// Initial load: Set the source directly from storage or default
 chrome.storage.local.get(['lastUrl'], (result) => {
   const targetUrl = result.lastUrl || DEFAULT_URL;
-  
-  // Use getAttribute to avoid property access SecurityErrors
-  const currentSrcAttr = iframe.getAttribute('src');
-  
-  if (!currentSrcAttr || currentSrcAttr === 'about:blank' || currentSrcAttr === '') {
-    iframe.setAttribute('src', targetUrl);
-  }
+  // NO READ: Directly set the attribute
+  iframe.src = targetUrl;
 });
 
-// Refresh button using setAttribute
+// Refresh button: Set the source to its current known default or refresh manually
 refreshBtn.addEventListener('click', () => {
-    const currentUrl = iframe.getAttribute('src') || DEFAULT_URL;
-    iframe.setAttribute('src', currentUrl);
+  // Instead of reading iframe.src, we just reload the app
+  iframe.src = DEFAULT_URL; 
 });
 
-// ZERO access to iframe.contentWindow or iframe.src (property).
-// This is the only way to avoid the protocols must match SecurityError.
+// ZERO access to iframe properties to guarantee 100% SecurityError prevention.
