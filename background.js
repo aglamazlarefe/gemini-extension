@@ -3,7 +3,7 @@ chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error('Error setting panel behavior:', error));
 
-// Context Menu and Global Config
+// Global Side Panel Config
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setOptions({
     path: 'sidepanel.html',
@@ -27,19 +27,16 @@ chrome.runtime.onStartup.addListener(() => {
 // Handle Context Menu Click
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "explainWithGemini" && info.selectionText) {
-    // Store text for the content script to pick up
+    // 1. Store text FIRST
     chrome.storage.local.set({ pendingPrompt: info.selectionText }, () => {
-      // Avoid opening on chrome:// tabs if it causes issues
-      if (tab.url && tab.url.startsWith('chrome://')) {
-          console.warn('Cannot open side panel on chrome:// URLs via context menu handler');
-          return;
-      }
-      
-      chrome.sidePanel.open({ tabId: tab.id }).catch((error) => {
+      // 2. Open panel SECOND to ensure storage is ready when panel content script loads
+      if (tab.id !== chrome.tabs.TAB_ID_NONE) {
+        chrome.sidePanel.open({ tabId: tab.id }).catch((error) => {
           console.error('Error opening side panel:', error);
-          // Fallback: system-wide open if possible
+          // Fallback if tab-specific open fails
           chrome.sidePanel.setOptions({ enabled: true });
-      });
+        });
+      }
     });
   }
 });
