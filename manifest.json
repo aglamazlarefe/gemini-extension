@@ -4,9 +4,9 @@
   "version": "3.5",
   "description": "Opens Gemini in the side panel with 'Write-Only' security, session persistence, and smart productivity tools.",
   "icons": {
-    "16": "icon.jpg",
-    "48": "icon.jpg",
-    "128": "icon.jpg"
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
   },
   "permissions": [
     "sidePanel",
@@ -28,9 +28,9 @@
   "action": {
     "default_title": "Open Gemini Side Panel",
     "default_icon": {
-      "16": "icon.jpg",
-      "48": "icon.jpg",
-      "128": "icon.jpg"
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
     }
   },
   "side_panel": {
