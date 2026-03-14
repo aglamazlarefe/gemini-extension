@@ -24,7 +24,7 @@ chrome.runtime.onStartup.addListener(() => {
   });
 });
 
-// Handle URL updates from content script (v2.1)
+// Handle URL updates from content script (Navigation Persistence)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "UPDATE_LAST_URL" && message.url) {
     if (message.url.includes('gemini.google.com')) {
@@ -33,9 +33,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+// Capture page context if no selection exists
+async function getPageContext(tabId) {
+    try {
+        const results = await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            func: () => document.body.innerText
+        });
+        return results[0].result;
+    } catch (e) {
+        console.error('Failed to get page context:', e);
+        return "";
+    }
+}
+
+// Handle Keyboard Commands (v3.0)
+chrome.commands.onCommand.addListener(async (command) => {
+    if (command === "explain-selection") {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab) return;
+
+        // Try to get selection first via script
+        const result = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => window.getSelection().toString()
+        });
+        
+        const selection = result[0].result;
+        const textToUse = selection || (await getPageContext(tab.id));
+
+        if (textToUse) {
+            chrome.storage.local.set({ pendingPrompt: textToUse }, () => {
+                chrome.sidePanel.open({ windowId: tab.windowId }).catch(e => console.error(e));
+            });
+        }
+    }
+});
+
 // Handle Context Menu Click
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "explainWithGemini" && info.selectionText) {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === "explainWithGemini") {
     // RESTRICTED URL FILTERING
     if (tab.url && (
         tab.url.startsWith('chrome://') || 
@@ -47,8 +84,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       return;
     }
 
+    const textToUse = info.selectionText || (await getPageContext(tab.id));
+
     // Store prompt and open side panel
-    chrome.storage.local.set({ pendingPrompt: info.selectionText }, () => {
+    chrome.storage.local.set({ pendingPrompt: textToUse }, () => {
       chrome.sidePanel.open({ windowId: tab.windowId }).catch((error) => {
         console.error('SidePanel failed to open:', error);
       });

@@ -1,19 +1,11 @@
-console.log('Gemini Extension v2.1 Active - sidepanel.js');
+console.log('Gemini Extension v3.0 Active - sidepanel.js');
 
 const iframe = document.getElementById('geminiFrame');
 const refreshBtn = document.getElementById('refreshBtn');
 const DEFAULT_URL = "https://gemini.google.com/app";
 
-/**
- * ARCHITECTURE NOTE (v2.1):
- * We use a "Write-Only" approach. Reading ANY property from the iframe cross-origin
- * triggers a SecurityError. Persistence is handled by the content script reporting 
- * URL changes back to the background script.
- */
-
 // Initial load: Restore lastGeminiUrl
 chrome.storage.local.get(['lastGeminiUrl', 'lastVisitedGeminiUrl'], (result) => {
-  // Use lastGeminiUrl (v2.1) with fallback to lastVisitedGeminiUrl (v2.0)
   const targetUrl = result.lastGeminiUrl || result.lastVisitedGeminiUrl || DEFAULT_URL;
   iframe.src = targetUrl;
 });
@@ -25,4 +17,44 @@ refreshBtn.addEventListener('click', () => {
   });
 });
 
-// NO property reads from the iframe element.
+// --- SMART BUTTON LOGIC (v3.0) ---
+
+const templates = {
+    summarize: "Aşağıdaki içeriği en önemli noktalarıyla özetle: ",
+    yks: "Bu konuyu bir 12. sınıf öğrencisi için YKS (TYT/AYT) müfredatına uygun, sade ve akademik derinliği koruyarak anlat: ",
+    code: "Bu kod bloğunun mantığını açıkla, varsa hataları bul ve daha optimize bir versiyonunu öner: ",
+    analyze: "Bu konuya/makaleye bir araştırmacı gözüyle bakmanı istiyorum. Buradaki yaklaşımın güçlü ve zayıf yönleri nelerdir? Alternatif ne yapılabilirdi? "
+};
+
+async function sendTemplatePrompt(type) {
+    // Get current tab content or selection
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!tab) return;
+
+    // Try to get selection
+    const result = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => window.getSelection().toString()
+    });
+
+    let context = result[0].result;
+    
+    // Fallback to page content if no selection
+    if (!context) {
+        const pageResult = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => document.body.innerText
+        });
+        context = pageResult[0].result;
+    }
+
+    if (context) {
+        const finalPrompt = templates[type] + context;
+        chrome.storage.local.set({ pendingPrompt: finalPrompt });
+    }
+}
+
+document.getElementById('summarizeBtn').addEventListener('click', () => sendTemplatePrompt('summarize'));
+document.getElementById('yksBtn').addEventListener('click', () => sendTemplatePrompt('yks'));
+document.getElementById('codeBtn').addEventListener('click', () => sendTemplatePrompt('code'));
+document.getElementById('analyzeBtn').addEventListener('click', () => sendTemplatePrompt('analyze'));

@@ -1,7 +1,6 @@
-console.log('Gemini Extension v2.1 Active - content_script.js');
+console.log('Gemini Extension v3.0 Active - content_script.js');
 
-// 1. URL TRACKING LOGIC (v2.1)
-// Monitor URL changes and report to background for persistence
+// 1. URL TRACKING LOGIC
 let lastUrl = window.location.href;
 
 const reportUrlChange = () => {
@@ -15,10 +14,8 @@ const reportUrlChange = () => {
     }
 };
 
-// Listen for popstate (back/forward)
 window.addEventListener('popstate', reportUrlChange);
 
-// Listen for pushState/replaceState by observing the title or DOM changes
 const urlObserver = new MutationObserver(() => {
     reportUrlChange();
 });
@@ -27,11 +24,10 @@ urlObserver.observe(document.querySelector('head') || document.documentElement, 
     subtree: true
 });
 
-// Initial report
 reportUrlChange();
 
 
-// 2. PROMPT INJECTION LOGIC (From v1.9/v2.0)
+// 2. PROMPT INJECTION & AUTO-SUBMIT (v3.0)
 function injectPrompt(promptText) {
   const selectors = [
     'div[contenteditable="true"]',
@@ -54,21 +50,28 @@ function injectPrompt(promptText) {
 
     if (inputField) {
       console.log('Gemini Extension: Target found. Injecting...');
-      const finalPrompt = "Explain this: " + promptText;
       
       inputField.focus();
 
       if (inputField.tagName === 'TEXTAREA' || inputField.tagName === 'INPUT') {
-        inputField.value = finalPrompt;
+        inputField.value = promptText;
       } else {
-        if (inputField.innerText !== finalPrompt) {
-            inputField.innerText = finalPrompt;
-        }
+        inputField.innerText = promptText;
       }
 
+      // Trigger events
       ['input', 'change', 'blur', 'keyup'].forEach(type => {
         inputField.dispatchEvent(new Event(type, { bubbles: true }));
       });
+
+      // --- AUTO-SUBMIT (v3.0) ---
+      setTimeout(() => {
+          const sendButton = document.querySelector('button[aria-label*="Send"], button[aria-label*="Gönder"], .send-button');
+          if (sendButton) {
+              sendButton.click();
+              console.log('Gemini Extension: Auto-submitted!');
+          }
+      }, 500);
 
       chrome.storage.local.remove('pendingPrompt');
       return true;

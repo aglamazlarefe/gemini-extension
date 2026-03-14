@@ -1,109 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Gemini Side Panel</title>
-  <style>
-    :root {
-      --bg-color: #f1f3f4;
-      --text-color: #3c4043;
-      --toolbar-bg: #ffffff;
-      --border-color: #bdc1c6;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg-color: #1e1e1e;
-        --text-color: #e8eaed;
-        --toolbar-bg: #2d2d2d;
-        --border-color: #3c4043;
-      }
-    }
-
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    #toolbar {
-      height: 48px;
-      background-color: var(--toolbar-bg);
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      border-bottom: 1px solid var(--border-color);
-      justify-content: space-between;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-      z-index: 10;
-    }
-
-    #toolbar span {
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    #toolbar button {
-      background: none;
-      border: none;
-      color: var(--text-color);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px;
-      border-radius: 50%;
-      transition: background-color 0.2s;
-    }
-
-    #toolbar button:hover {
-      background-color: rgba(60, 64, 67, 0.08);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      #toolbar button:hover {
-        background-color: rgba(232, 234, 237, 0.08);
-      }
-    }
-
-    #container {
-      flex-grow: 1;
-      position: relative;
-    }
-
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-
-    .icon {
-      width: 20px;
-      height: 20px;
-      fill: currentColor;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Gemini Side Panel</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="toolbar">
-    <span>Gemini</span>
-    <button id="refreshBtn" title="Refresh">
-      <svg class="icon" viewBox="0 0 24 24">
-        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-      </svg>
-    </button>
-  </div>
-  <div id="container">
-    <iframe id="geminiFrame" src="https://gemini.google.com/app"></iframe>
-  </div>
+    <div class="toolbar">
+        <button class="tool-btn" id="summarizeBtn" title="Önemli noktalarıyla özetle">Özetle</button>
+        <button class="tool-btn" id="yksBtn" title="YKS müfredatına uygun anlat">YKS Tarzı</button>
+        <button class="tool-btn" id="codeBtn" title="Kodu analiz et ve optimize et">Kod Analizi</button>
+        <button class="tool-btn" id="analyzeBtn" title="Araştırmacı gözüyle analiz et">Analiz Et</button>
+    </div>
 
-  <script src="sidepanel.js"></script>
+    <iframe id="geminiFrame" src=""></iframe>
+
+    <div class="refresh-container">
+        <button id="refreshBtn" title="Refresh Gemini">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+            </svg>
+        </button>
+    </div>
+
+    <script src="sidepanel.js"></script>
 </body>
 </html>

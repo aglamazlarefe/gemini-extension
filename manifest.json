@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Gemini Side Panel",
-  "version": "2.1",
-  "description": "Opens Gemini in the side panel with 'Write-Only' security and direct content-script persistence.",
+  "version": "3.0",
+  "description": "Opens Gemini in the side panel with 'Write-Only' security, session persistence, and smart productivity tools.",
   "permissions": [
     "sidePanel",
     "declarativeNetRequest",
@@ -10,7 +10,8 @@
     "storage",
     "contextMenus",
     "clipboardWrite",
-    "scripting"
+    "scripting",
+    "activeTab"
   ],
   "host_permissions": [
     "https://gemini.google.com/*"
@@ -23,6 +24,20 @@
   },
   "side_panel": {
     "default_path": "sidepanel.html"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+S"
+      },
+      "description": "Toggle Gemini Side Panel"
+    },
+    "explain-selection": {
+      "suggested_key": {
+        "default": "Alt+Q"
+      },
+      "description": "Explain selection with Gemini"
+    }
   },
   "declarative_net_request": {
     "rule_resources": [

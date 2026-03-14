@@ -1,0 +1,89 @@
+:root {
+  --bg-color: #1e1e1e;
+  --text-color: #e0e0e0;
+  --btn-bg: #333;
+  --btn-hover: #444;
+  --accent-color: #3b82f6;
+  --toolbar-bg: #252525;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 8px;
+  background-color: var(--toolbar-bg);
+  border-bottom: 1px solid #444;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.tool-btn {
+  background-color: var(--btn-bg);
+  color: var(--text-color);
+  border: 1px solid #555;
+  padding: 6px 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tool-btn:hover {
+  background-color: var(--btn-hover);
+  border-color: var(--accent-color);
+}
+
+.tool-btn:active {
+  transform: scale(0.95);
+}
+
+.refresh-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+}
+
+#refreshBtn {
+    background: var(--accent-color);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+#refreshBtn:hover {
+    transform: rotate(45deg) scale(1.1);
+}
+
+#refreshBtn svg {
+    fill: white;
+}
+
+iframe {
+  flex-grow: 1;
+  border: none;
+  width: 100%;
+}
