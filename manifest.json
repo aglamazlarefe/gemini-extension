@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Side Panel",
-  "version": "1.9",
+  "version": "2.0",
   "description": "Opens Gemini in the side panel with 'Write-Only' security and session persistence.",
   "permissions": [
     "sidePanel",
@@ -10,7 +10,8 @@
     "storage",
     "contextMenus",
     "clipboardWrite",
-    "scripting"
+    "scripting",
+    "webNavigation"
   ],
   "host_permissions": [
     "https://gemini.google.com/*"

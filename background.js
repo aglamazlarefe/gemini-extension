@@ -1,4 +1,4 @@
-// Keep old state open on click
+// Basic Side Panel behavior
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
@@ -24,11 +24,21 @@ chrome.runtime.onStartup.addListener(() => {
   });
 });
 
+// Track Navigation within original Gemini domain
+chrome.webNavigation.onCommitted.addListener((details) => {
+  // We only care about sub-frames (the iframe) navigating to Gemini
+  // and we exclude the initial about:blank or extension-side internal pages
+  if (details.url && 
+      details.url.includes('gemini.google.com') && 
+      details.frameId !== 0) {
+    chrome.storage.local.set({ lastVisitedGeminiUrl: details.url });
+  }
+}, { url: [{ hostSuffix: 'gemini.google.com' }] });
+
 // Handle Context Menu Click
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "explainWithGemini" && info.selectionText) {
-    // 1. RESTRICTED URL FILTERING (v1.9)
-    // Avoid scripts and side panel triggers on restricted browser pages
+    // 1. RESTRICTED URL FILTERING
     if (tab.url && (
         tab.url.startsWith('chrome://') || 
         tab.url.startsWith('brave://') || 
