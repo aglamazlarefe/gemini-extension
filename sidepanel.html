@@ -1,15 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Gemini</title>
+  <title>Gemini Side Panel</title>
   <style>
+    :root {
+      --bg-color: #f1f3f4;
+      --text-color: #000;
+      --toolbar-bg: #ffffff;
+      --border-color: #ddd;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #1e1e1e;
+        --text-color: #e8eaed;
+        --toolbar-bg: #2d2d2d;
+        --border-color: #444;
+      }
+    }
+
     body, html {
       margin: 0;
       padding: 0;
       height: 100%;
       width: 100%;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: sans-serif;
     }
+
+    #toolbar {
+      height: 40px;
+      background-color: var(--toolbar-bg);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      border-bottom: 1px solid var(--border-color);
+      justify-content: space-between;
+    }
+
+    #toolbar button {
+      background: none;
+      border: none;
+      color: var(--text-color);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      border-radius: 4px;
+    }
+
+    #toolbar button:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    #container {
+      flex-grow: 1;
+      position: relative;
+    }
+
     iframe {
       width: 100%;
       height: 100%;
@@ -18,6 +71,62 @@
   </style>
 </head>
 <body>
-  <iframe src="https://gemini.google.com/app"></iframe>
+  <div id="toolbar">
+    <span>Gemini</span>
+    <button id="refreshBtn" title="Refresh">⟳</button>
+  </div>
+  <div id="container">
+    <iframe id="geminiFrame" src="about:blank"></iframe>
+  </div>
+
+  <script>
+    const iframe = document.getElementById('geminiFrame');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const DEFAULT_URL = "https://gemini.google.com/app";
+
+    // Load URL from storage or default
+    chrome.storage.local.get(['lastUrl', 'lastSelectedText'], (result) => {
+      const targetUrl = result.lastUrl || DEFAULT_URL;
+      iframe.src = targetUrl;
+
+      if (result.lastSelectedText) {
+        // Copy selection to clipboard if it exists
+        navigator.clipboard.writeText(result.lastSelectedText).then(() => {
+          console.log('Selection copied to clipboard');
+          // Clear it so it doesn't copy again on manual refresh
+          chrome.storage.local.remove('lastSelectedText');
+        });
+      }
+    });
+
+    // Save URL on load
+    iframe.addEventListener('load', () => {
+      try {
+        const currentUrl = iframe.contentWindow.location.href;
+        if (currentUrl && currentUrl !== 'about:blank') {
+          chrome.storage.local.set({ lastUrl: currentUrl });
+        }
+      } catch (e) {
+        // Cross-origin prevents reading location.href directly if it navigates away from allowed domains
+        // But since we are proxying Gemini, it should work for gemini.google.com
+        console.log('Cannot read iframe URL due to cross-origin policy, saving base URL if possible');
+      }
+    });
+
+    // Refresh button
+    refreshBtn.addEventListener('click', () => {
+      iframe.src = iframe.src;
+    });
+
+    // Periodically poll for URL if possible (fallback for navigation tracking)
+    setInterval(() => {
+        try {
+            const currentUrl = iframe.contentWindow.location.href;
+            if (currentUrl && currentUrl !== 'about:blank') {
+                chrome.storage.local.set({ lastUrl: currentUrl });
+            }
+        } catch (e) {}
+    }, 5000);
+  </script>
 </body>
 </html>
