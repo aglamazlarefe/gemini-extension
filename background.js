@@ -29,13 +29,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "explainWithGemini" && info.selectionText) {
     // 1. Store text FIRST
     chrome.storage.local.set({ pendingPrompt: info.selectionText }, () => {
-      // 2. Open panel SECOND to ensure storage is ready when panel content script loads
-      if (tab.id !== chrome.tabs.TAB_ID_NONE) {
-        chrome.sidePanel.open({ tabId: tab.id }).catch((error) => {
-          console.error('Error opening side panel:', error);
-          // Fallback if tab-specific open fails
+      // 2. Open panel with error handling and fallback
+      if (tab && tab.id && tab.id !== chrome.tabs.TAB_ID_NONE) {
+        // Try to open in the specific window to avoid restricted tab issues
+        chrome.sidePanel.open({ windowId: tab.windowId }).catch((error) => {
+          console.warn('Could not open side panel for specific window, trying global setOptions fallback.');
           chrome.sidePanel.setOptions({ enabled: true });
         });
+      } else {
+          // Fallback if no tab info (rare)
+          chrome.sidePanel.setOptions({ enabled: true });
       }
     });
   }
