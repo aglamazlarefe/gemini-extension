@@ -1,4 +1,4 @@
-// Basic Side Panel behavior
+// Keep old state open on click
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
@@ -24,21 +24,19 @@ chrome.runtime.onStartup.addListener(() => {
   });
 });
 
-// Track Navigation within original Gemini domain
-chrome.webNavigation.onCommitted.addListener((details) => {
-  // We only care about sub-frames (the iframe) navigating to Gemini
-  // and we exclude the initial about:blank or extension-side internal pages
-  if (details.url && 
-      details.url.includes('gemini.google.com') && 
-      details.frameId !== 0) {
-    chrome.storage.local.set({ lastVisitedGeminiUrl: details.url });
+// Handle URL updates from content script (v2.1)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "UPDATE_LAST_URL" && message.url) {
+    if (message.url.includes('gemini.google.com')) {
+      chrome.storage.local.set({ lastGeminiUrl: message.url });
+    }
   }
-}, { url: [{ hostSuffix: 'gemini.google.com' }] });
+});
 
 // Handle Context Menu Click
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "explainWithGemini" && info.selectionText) {
-    // 1. RESTRICTED URL FILTERING
+    // RESTRICTED URL FILTERING
     if (tab.url && (
         tab.url.startsWith('chrome://') || 
         tab.url.startsWith('brave://') || 
@@ -49,7 +47,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       return;
     }
 
-    // 2. Store prompt and open side panel
+    // Store prompt and open side panel
     chrome.storage.local.set({ pendingPrompt: info.selectionText }, () => {
       chrome.sidePanel.open({ windowId: tab.windowId }).catch((error) => {
         console.error('SidePanel failed to open:', error);

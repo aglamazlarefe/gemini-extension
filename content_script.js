@@ -1,5 +1,37 @@
-console.log('Gemini Extension v1.8 Active - content_script.js');
+console.log('Gemini Extension v2.1 Active - content_script.js');
 
+// 1. URL TRACKING LOGIC (v2.1)
+// Monitor URL changes and report to background for persistence
+let lastUrl = window.location.href;
+
+const reportUrlChange = () => {
+    const currentUrl = window.location.href;
+    if (currentUrl !== lastUrl && currentUrl.includes('gemini.google.com')) {
+        lastUrl = currentUrl;
+        chrome.runtime.sendMessage({
+            type: "UPDATE_LAST_URL",
+            url: currentUrl
+        });
+    }
+};
+
+// Listen for popstate (back/forward)
+window.addEventListener('popstate', reportUrlChange);
+
+// Listen for pushState/replaceState by observing the title or DOM changes
+const urlObserver = new MutationObserver(() => {
+    reportUrlChange();
+});
+urlObserver.observe(document.querySelector('head') || document.documentElement, {
+    childList: true,
+    subtree: true
+});
+
+// Initial report
+reportUrlChange();
+
+
+// 2. PROMPT INJECTION LOGIC (From v1.9/v2.0)
 function injectPrompt(promptText) {
   const selectors = [
     'div[contenteditable="true"]',
@@ -29,19 +61,16 @@ function injectPrompt(promptText) {
       if (inputField.tagName === 'TEXTAREA' || inputField.tagName === 'INPUT') {
         inputField.value = finalPrompt;
       } else {
-        // Handle contenteditable with more care
         if (inputField.innerText !== finalPrompt) {
             inputField.innerText = finalPrompt;
         }
       }
 
-      // Trigger all possible events to update internal state
       ['input', 'change', 'blur', 'keyup'].forEach(type => {
         inputField.dispatchEvent(new Event(type, { bubbles: true }));
       });
 
       chrome.storage.local.remove('pendingPrompt');
-      console.log('Gemini Extension: Injection success.');
       return true;
     }
     return false;
@@ -69,6 +98,7 @@ function injectPrompt(promptText) {
   }, 1000);
 }
 
+// Prompt listeners
 chrome.storage.local.get(['pendingPrompt'], (result) => {
   if (result.pendingPrompt) {
     injectPrompt(result.pendingPrompt);
