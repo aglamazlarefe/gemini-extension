@@ -42,70 +42,81 @@ function isRestrictedUrl(url) {
            url.startsWith('view-source:');
 }
 
-// Handle Keyboard Commands (v3.2 - Gesture Fix)
-chrome.commands.onCommand.addListener(async (command) => {
-    if (command === "explain-selection") {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tab) return;
+/**
+ * v3.3 STRICT GESTURE HANDLING
+ * We must NOT await anything before chrome.sidePanel.open()
+ */
 
-        // CRITICAL SYNC CALL: No await before this.
+// Handle Keyboard Commands
+chrome.commands.onCommand.addListener((command, tab) => {
+    if (!tab) return;
+    
+    if (command === "explain-selection") {
+        // 1. SYNC OPEN: This preserves the user gesture token
         chrome.sidePanel.open({ windowId: tab.windowId }).catch(e => console.error(e));
 
-        // Force New Chat for Alt+Q
-        const NEW_CHAT_URL = "https://gemini.google.com/app";
-        chrome.storage.local.set({ lastGeminiUrl: NEW_CHAT_URL });
+        // 2. ASYNC LOGIC: Runs after the panel open command
+        (async () => {
+            // Force New Chat
+            chrome.storage.local.set({ lastGeminiUrl: "https://gemini.google.com/app" });
 
+            if (isRestrictedUrl(tab.url)) return;
+
+            try {
+                const result = await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    func: () => window.getSelection().toString()
+                });
+                
+                let textToUse = result[0]?.result;
+                if (!textToUse) {
+                    const pageResult = await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        func: () => document.body.innerText
+                    });
+                    textToUse = pageResult[0]?.result;
+                }
+
+                if (textToUse) {
+                    chrome.storage.local.set({ pendingPrompt: textToUse });
+                }
+            } catch (e) {
+                console.warn('Context capture failed.');
+            }
+        })();
+    }
+});
+
+// Handle Context Menu Click
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (!tab) return;
+
+  if (info.menuItemId === "explainWithGemini") {
+    // 1. SYNC OPEN
+    chrome.sidePanel.open({ windowId: tab.windowId }).catch((error) => {
+      console.error('SidePanel failed to open:', error);
+    });
+
+    // 2. ASYNC LOGIC
+    (async () => {
         if (isRestrictedUrl(tab.url)) return;
 
-        try {
-            const result = await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                func: () => window.getSelection().toString()
-            });
-            
-            let textToUse = result[0]?.result;
-            if (!textToUse) {
+        let textToUse = info.selectionText;
+        if (!textToUse) {
+            try {
                 const pageResult = await chrome.scripting.executeScript({
                     target: { tabId: tab.id },
                     func: () => document.body.innerText
                 });
                 textToUse = pageResult[0]?.result;
+            } catch (e) {
+                console.warn('Page capture failed.');
             }
-
-            if (textToUse) {
-                chrome.storage.local.set({ pendingPrompt: textToUse });
-            }
-        } catch (e) {
-            console.warn('Scripting failed or blocked.');
         }
-    }
-});
 
-// Handle Context Menu Click (v3.2 - Gesture Fix)
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === "explainWithGemini") {
-    // CRITICAL SYNC CALL: No await before this.
-    chrome.sidePanel.open({ windowId: tab.windowId }).catch((error) => {
-      console.error('SidePanel failed to open:', error);
-    });
-
-    if (isRestrictedUrl(tab.url)) return;
-
-    let textToUse = info.selectionText;
-    if (!textToUse) {
-        try {
-            const pageResult = await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                func: () => document.body.innerText
-            });
-            textToUse = pageResult[0]?.result;
-        } catch (e) {
-            console.warn('Page capture failed.');
+        if (textToUse) {
+            chrome.storage.local.set({ pendingPrompt: textToUse });
         }
-    }
-
-    if (textToUse) {
-        chrome.storage.local.set({ pendingPrompt: textToUse });
-    }
+    })();
   }
 });
