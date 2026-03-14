@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Side Panel",
-  "version": "3.0",
+  "version": "3.1",
   "description": "Opens Gemini in the side panel with 'Write-Only' security, session persistence, and smart productivity tools.",
   "permissions": [
     "sidePanel",
@@ -14,7 +14,8 @@
     "activeTab"
   ],
   "host_permissions": [
-    "https://gemini.google.com/*"
+    "https://gemini.google.com/*",
+    "*://*/*"
   ],
   "background": {
     "service_worker": "background.js"
