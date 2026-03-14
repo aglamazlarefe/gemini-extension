@@ -3,15 +3,11 @@ const refreshBtn = document.getElementById('refreshBtn');
 const DEFAULT_URL = "https://gemini.google.com/app";
 
 // Restore state from storage
-chrome.storage.local.get(['lastUrl', 'lastSelectedText'], (result) => {
-  if (result.lastUrl && result.lastUrl !== DEFAULT_URL) {
-    iframe.src = result.lastUrl;
-  }
-
-  if (result.lastSelectedText) {
-    navigator.clipboard.writeText(result.lastSelectedText).then(() => {
-      chrome.storage.local.remove('lastSelectedText');
-    });
+chrome.storage.local.get(['lastUrl'], (result) => {
+  const targetUrl = result.lastUrl || DEFAULT_URL;
+  // Initialize ONLY if empty or different to prevent unnecessary flicker
+  if (iframe.src === "" || iframe.src === "about:blank" || iframe.src !== targetUrl) {
+    iframe.src = targetUrl;
   }
 });
 
@@ -19,11 +15,11 @@ chrome.storage.local.get(['lastUrl', 'lastSelectedText'], (result) => {
 const saveUrl = () => {
   try {
     const currentUrl = iframe.contentWindow.location.href;
-    if (currentUrl && currentUrl.startsWith('http')) {
+    if (currentUrl && currentUrl.startsWith('http') && currentUrl !== 'about:blank') {
       chrome.storage.local.set({ lastUrl: currentUrl });
     }
   } catch (e) {
-    // Fallback: we know it's Gemini
+    // Cross-origin prevents reading
   }
 };
 

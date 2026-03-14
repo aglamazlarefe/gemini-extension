@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Side Panel",
-  "version": "1.2",
+  "version": "1.3",
   "description": "Opens Gemini in the side panel with advanced features like persistence and context menu.",
   "permissions": [
     "sidePanel",
@@ -9,7 +9,9 @@
     "declarativeNetRequestWithHostAccess",
     "storage",
     "contextMenus",
-    "clipboardWrite"
+    "clipboardWrite",
+    "scripting",
+    "activeTab"
   ],
   "host_permissions": [
     "*://*.google.com/*"
