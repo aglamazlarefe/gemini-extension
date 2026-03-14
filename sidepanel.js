@@ -1,20 +1,18 @@
-console.log('Gemini Extension v3.5 Active - sidepanel.js');
+console.log('Gemini Extension v3.8 Active - sidepanel.js');
 
 const iframe = document.getElementById('geminiFrame');
 const refreshBtn = document.getElementById('refreshBtn');
+const dropOverlay = document.getElementById('drop-overlay');
 const DEFAULT_URL = "https://gemini.google.com/app";
 
 /**
  * INITIALIZATION-ONLY LOAD (v3.5)
- * To prevent infinite reload loops, we ONLY set the iframe src on load.
- * We removed the reactive listener for chrome.storage.onChanged.
  */
 chrome.storage.local.get(['lastGeminiUrl'], (result) => {
   iframe.src = result.lastGeminiUrl || DEFAULT_URL;
 });
 
 refreshBtn.addEventListener('click', () => {
-    // Standard manual refresh
     iframe.src = iframe.src; 
 });
 
@@ -28,7 +26,6 @@ const templates = {
 };
 
 async function handleToolbarClick(type) {
-    // Robustly get active tab
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const tab = tabs[0];
     if (!tab) return;
@@ -60,37 +57,46 @@ document.getElementById('btn-yks').addEventListener('click', () => handleToolbar
 document.getElementById('btn-code').addEventListener('click', () => handleToolbarClick('code'));
 document.getElementById('btn-think').addEventListener('click', () => handleToolbarClick('think'));
 
-// --- DRAG AND DROP INJECTION (v3.7) ---
+// --- ROBUST DRAG AND DROP OVERLAY (v3.8) ---
 
-// We use pointer-events: none on the iframe during dragover 
-// to allow the side panel window to receive the drop event.
+let dragCounter = 0;
+
 window.addEventListener('dragenter', (e) => {
-    iframe.style.pointerEvents = 'none';
-});
-
-window.addEventListener('dragover', (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-});
-
-// Restore pointer events if the drag leaves or is cancelled
-window.addEventListener('dragend', () => {
-    iframe.style.pointerEvents = 'auto';
+    dragCounter++;
+    if (dragCounter === 1) {
+        dropOverlay.style.display = 'flex';
+        iframe.style.pointerEvents = 'none'; // Prevent iframe from flickering
+    }
 });
 
 window.addEventListener('dragleave', (e) => {
-    if (e.relatedTarget === null) {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter === 0) {
+        dropOverlay.style.display = 'none';
         iframe.style.pointerEvents = 'auto';
     }
 });
 
-window.addEventListener('drop', (e) => {
+// Important: Must preventDefault on dragover to allow drop
+dropOverlay.addEventListener('dragover', (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'copy';
+});
+
+dropOverlay.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    dragCounter = 0;
+    dropOverlay.style.display = 'none';
     iframe.style.pointerEvents = 'auto';
     
     const droppedText = e.dataTransfer.getData('text');
     if (droppedText) {
-        console.log('Gemini Extension: Text dropped, injecting...');
+        console.log('Gemini Extension: Text dropped on overlay, injecting...');
         chrome.storage.local.set({ pendingPrompt: droppedText });
     }
 });
