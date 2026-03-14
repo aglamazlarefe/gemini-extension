@@ -3,13 +3,26 @@ chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-// Context Menu Setup
+// Context Menu Setup and Global Side Panel Config
 chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel.setOptions({
+    path: 'sidepanel.html',
+    enabled: true
+  }).catch((error) => console.error(error));
+
   chrome.contextMenus.create({
     id: "explainWithGemini",
     title: "Explain with Gemini",
     contexts: ["selection"]
   });
+});
+
+// Ensure settings are applied on startup as well
+chrome.runtime.onStartup.addListener(() => {
+  chrome.sidePanel.setOptions({
+    path: 'sidepanel.html',
+    enabled: true
+  }).catch((error) => console.error(error));
 });
 
 // Handle Context Menu Click

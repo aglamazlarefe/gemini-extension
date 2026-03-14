@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Side Panel",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Opens Gemini in the side panel with advanced features like persistence and context menu.",
   "permissions": [
     "sidePanel",
