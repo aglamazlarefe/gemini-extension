@@ -59,3 +59,19 @@ document.getElementById('btn-summarize').addEventListener('click', () => handleT
 document.getElementById('btn-yks').addEventListener('click', () => handleToolbarClick('yks'));
 document.getElementById('btn-code').addEventListener('click', () => handleToolbarClick('code'));
 document.getElementById('btn-think').addEventListener('click', () => handleToolbarClick('think'));
+
+// --- DRAG AND DROP INJECTION (v3.6) ---
+
+window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+});
+
+window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const droppedText = e.dataTransfer.getData('text');
+    if (droppedText) {
+        console.log('Gemini Extension: Text dropped, injecting...');
+        chrome.storage.local.set({ pendingPrompt: droppedText });
+    }
+});
