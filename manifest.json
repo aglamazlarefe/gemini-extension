@@ -61,8 +61,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://gemini.google.com/*"],
-      "js": ["content_script.js"],
+      "matches": [
+        "https://gemini.google.com/*"
+      ],
+      "js": [
+        "content_script.js"
+      ],
       "all_frames": true,
       "run_at": "document_start"
     }
