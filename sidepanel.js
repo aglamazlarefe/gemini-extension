@@ -5,7 +5,9 @@ const DEFAULT_URL = "https://gemini.google.com/app";
 // Restore state from storage and check for pending prompts
 chrome.storage.local.get(['lastUrl', 'pendingPrompt'], (result) => {
   const targetUrl = result.lastUrl || DEFAULT_URL;
-  if (iframe.src === "" || iframe.src === "about:blank" || (iframe.src !== targetUrl && !iframe.src.startsWith(DEFAULT_URL))) {
+  
+  // Set src only if not already loading a valid Gemini URL to prevent feedback loops/reloads
+  if (!iframe.src || iframe.src === 'about:blank') {
     iframe.src = targetUrl;
   }
 
@@ -21,51 +23,38 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-async function checkAndInject(text) {
-  // Wait for iframe to be ready
-  if (iframe.contentWindow.location.href === 'about:blank') {
-    iframe.addEventListener('load', () => injectToGemini(text), { once: true });
-  } else {
+function checkAndInject(text) {
+  // Instead of checking location.href (which throws SecurityError), 
+  // we use a flag or just attempt injection after a short delay/load event.
+  if (iframe.dataset.loaded === "true") {
     injectToGemini(text);
+  } else {
+    iframe.addEventListener('load', () => {
+      iframe.dataset.loaded = "true";
+      injectToGemini(text);
+    }, { once: true });
   }
 }
 
 async function injectToGemini(text) {
-  // We need to inject INTO the iframe. 
-  // In MV3, sidepanel can use chrome.scripting if it has host permissions for the iframe target.
-  // The manifest has "*://*.google.com/*" host permissions.
-  
   try {
-    // Find the tab this side panel belongs to (optional, but scripting needs a tabId)
-    // Actually, scripting.executeScript requires a tabId. 
-    // Side panels can access the current tab info.
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
-    // We need to find the frameId of the iframe inside sidepanel.js? 
-    // No, sidepanel.js is RUNNING in the extension origin. The iframe is gemini.google.com.
-    // Scripting can target the iframe if we know its frameId or if we inject into all frames of the "tab".
-    // But this side panel IS a document. The iframe is a child.
-    
-    // Correct approach for sidepanel -> iframe injection:
-    // 1. Get the tabId (from chrome.tabs)
-    // 2. We can't easily get the frameId of an iframe INSIDE an extension page from background/scripting.
-    // BUT, we can use contentWindow.postMessage OR if it's broad permissions, 
-    // we can try to find the frame.
-    
-    // Actually, the most reliable way for a sidepanel to talk to its OWN iframe 
-    // is to use chrome.scripting.executeScript but it targets TABS.
-    
-    // Wait, the user asked to "use chrome.scripting.executeScript targeting the iframe's frame ID".
-    // This implies we should find the frame.
-    
+    // Clear the prompt from storage so it won't re-run on manual refresh
     chrome.storage.local.remove('pendingPrompt');
+
+    // We can't easily get the frameId for an iframe in an extension page from scripting.executeScript.
+    // However, we can use the "allFrames: true" strategy to find it.
+    // We need to target the tab that the side panel is currently associated with.
+    
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) return;
 
     chrome.scripting.executeScript({
       target: { 
-        tabId: (await chrome.tabs.getCurrent()).id, // This is the extension tab? No.
-        allFrames: true // Simple way to find it
+        tabId: tab.id,
+        allFrames: true 
       },
       func: (promptText) => {
+        // Only run on the Gemini frame
         if (window.location.host === 'gemini.google.com') {
           const selectors = [
              'div[contenteditable="true"]',
@@ -87,9 +76,9 @@ async function injectToGemini(text) {
             } else {
               inputField.innerText = finalPrompt;
             }
-            // Trigger input events
+            // Trigger input events so Gemini UI updates
             inputField.dispatchEvent(new Event('input', { bubbles: true }));
-            console.log('Prompt injected successfully');
+            console.log('Gemini Extension: Prompt injected');
           }
         }
       },
@@ -100,19 +89,13 @@ async function injectToGemini(text) {
   }
 }
 
-// Save URL periodically
-const saveUrl = () => {
-  try {
-    const currentUrl = iframe.contentWindow.location.href;
-    if (currentUrl && currentUrl.startsWith('http')) {
-      chrome.storage.local.set({ lastUrl: currentUrl });
-    }
-  } catch (e) {}
-};
+// Track load state
+iframe.addEventListener('load', () => {
+  iframe.dataset.loaded = "true";
+  // We can't read the URL, but we can assume it's loading Gemini
+});
 
-iframe.addEventListener('load', saveUrl);
-setInterval(saveUrl, 5000);
-
+// Refresh button
 refreshBtn.addEventListener('click', () => {
   iframe.src = iframe.src;
 });
