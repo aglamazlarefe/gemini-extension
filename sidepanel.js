@@ -1,4 +1,4 @@
-console.log('Gemini Extension v3.8 Active - sidepanel.js');
+console.log('Gemini Extension v3.9 Active - sidepanel.js');
 
 const iframe = document.getElementById('geminiFrame');
 const refreshBtn = document.getElementById('refreshBtn');
@@ -57,7 +57,7 @@ document.getElementById('btn-yks').addEventListener('click', () => handleToolbar
 document.getElementById('btn-code').addEventListener('click', () => handleToolbarClick('code'));
 document.getElementById('btn-think').addEventListener('click', () => handleToolbarClick('think'));
 
-// --- ROBUST DRAG AND DROP OVERLAY (v3.8) ---
+// --- ROBUST DRAG AND DROP OVERLAY BRIDGE (v3.9) ---
 
 let dragCounter = 0;
 
@@ -66,7 +66,7 @@ window.addEventListener('dragenter', (e) => {
     dragCounter++;
     if (dragCounter === 1) {
         dropOverlay.style.display = 'flex';
-        iframe.style.pointerEvents = 'none'; // Prevent iframe from flickering
+        iframe.style.setProperty('pointer-events', 'none', 'important');
     }
 });
 
@@ -75,28 +75,43 @@ window.addEventListener('dragleave', (e) => {
     dragCounter--;
     if (dragCounter === 0) {
         dropOverlay.style.display = 'none';
-        iframe.style.pointerEvents = 'auto';
+        iframe.style.setProperty('pointer-events', 'auto', 'important');
     }
 });
 
-// Important: Must preventDefault on dragover to allow drop
 dropOverlay.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'copy';
 });
 
-dropOverlay.addEventListener('drop', (e) => {
+dropOverlay.addEventListener('drop', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
     dragCounter = 0;
     dropOverlay.style.display = 'none';
-    iframe.style.pointerEvents = 'auto';
+    iframe.style.setProperty('pointer-events', 'auto', 'important');
     
-    const droppedText = e.dataTransfer.getData('text');
+    let droppedText = e.dataTransfer.getData('text');
+    
+    // Cross-Origin Bridge: If text is empty due to security, ask the content script
+    if (!droppedText) {
+        try {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tabs[0] && !tabs[0].url.startsWith('chrome')) {
+                const response = await chrome.tabs.sendMessage(tabs[0].id, { type: "GET_DRAGGED_TEXT" });
+                if (response && response.text) {
+                    droppedText = response.text;
+                }
+            }
+        } catch (err) {
+            console.warn("Gemini Extension: Failed to fetch dragged text via bridge.", err);
+        }
+    }
+
     if (droppedText) {
-        console.log('Gemini Extension: Text dropped on overlay, injecting...');
+        console.log('Gemini Extension: Text captured, injecting...');
         chrome.storage.local.set({ pendingPrompt: droppedText });
     }
 });

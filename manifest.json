@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Side Panel",
-  "version": "3.8",
+  "version": "3.9",
   "description": "Opens Gemini in the side panel with 'Write-Only' security, session persistence, and smart productivity tools.",
   "icons": {
     "16": "icon.png",
@@ -62,7 +62,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://gemini.google.com/*"
+        "<all_urls>"
       ],
       "js": [
         "content_script.js"
