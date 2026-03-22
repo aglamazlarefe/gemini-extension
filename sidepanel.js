@@ -115,3 +115,132 @@ dropOverlay.addEventListener('drop', async (e) => {
         chrome.storage.local.set({ pendingPrompt: droppedText });
     }
 });
+
+// --- TAB SWITCHING LOGIC ---
+
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tabId = btn.getAttribute('data-tab');
+        
+        // Update buttons
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Update content
+        tabContents.forEach(content => {
+            content.classList.remove('active');
+            if (content.id === `tab-${tabId}`) {
+                content.classList.add('active');
+            }
+        });
+    });
+});
+
+// --- TODO LIST LOGIC ---
+
+const todoInput = document.getElementById('todo-input');
+const addTodoBtn = document.getElementById('add-todo-btn');
+const todoList = document.getElementById('todo-list');
+
+async function loadTodos() {
+    const data = await chrome.storage.local.get(['todos']);
+    const todos = data.todos || [];
+    renderTodos(todos);
+}
+
+function renderTodos(todos) {
+    todoList.innerHTML = '';
+    todos.forEach((todo, index) => {
+        const li = document.createElement('li');
+        li.className = `todo-item ${todo.done ? 'done' : ''}`;
+        li.innerHTML = `
+            <input type="checkbox" ${todo.done ? 'checked' : ''}>
+            <span>${todo.text}</span>
+            <button class="todo-delete">✕</button>
+        `;
+
+        li.querySelector('input').addEventListener('change', () => toggleTodo(index));
+        li.querySelector('.todo-delete').addEventListener('click', () => deleteTodo(index));
+        
+        todoList.appendChild(li);
+    });
+}
+
+async function addTodo() {
+    const text = todoInput.value.trim();
+    if (!text) return;
+
+    const data = await chrome.storage.local.get(['todos']);
+    const todos = data.todos || [];
+    todos.push({ text, done: false });
+    
+    await chrome.storage.local.set({ todos });
+    todoInput.value = '';
+    renderTodos(todos);
+}
+
+async function toggleTodo(index) {
+    const data = await chrome.storage.local.get(['todos']);
+    const todos = data.todos || [];
+    todos[index].done = !todos[index].done;
+    await chrome.storage.local.set({ todos });
+    renderTodos(todos);
+}
+
+async function deleteTodo(index) {
+    const data = await chrome.storage.local.get(['todos']);
+    const todos = data.todos || [];
+    todos.splice(index, 1);
+    await chrome.storage.local.set({ todos });
+    renderTodos(todos);
+}
+
+addTodoBtn.addEventListener('click', addTodo);
+todoInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addTodo();
+});
+
+// --- NOTES LOGIC ---
+
+const notesArea = document.getElementById('notes-area');
+const notesIndicator = document.getElementById('notes-saved-indicator');
+const clearNotesBtn = document.getElementById('clear-notes-btn');
+let saveTimeout;
+
+async function loadNotes() {
+    const data = await chrome.storage.local.get(['notes']);
+    notesArea.value = data.notes || '';
+}
+
+function saveNotes() {
+    clearTimeout(saveTimeout);
+    notesIndicator.textContent = 'Kaydediliyor...';
+    
+    saveTimeout = setTimeout(async () => {
+        await chrome.storage.local.set({ notes: notesArea.value });
+        notesIndicator.textContent = '✓ Kaydedildi';
+        setTimeout(() => {
+            if (notesIndicator.textContent === '✓ Kaydedildi') {
+                notesIndicator.textContent = '';
+            }
+        }, 2000);
+    }, 800);
+}
+
+notesArea.addEventListener('input', saveNotes);
+
+clearNotesBtn.addEventListener('click', async () => {
+    if (confirm('Tüm notları silmek istediğinize emin misiniz?')) {
+        await chrome.storage.local.set({ notes: '' });
+        notesArea.value = '';
+        notesIndicator.textContent = '';
+    }
+});
+
+// Initialize
+loadTodos();
+loadNotes();
+

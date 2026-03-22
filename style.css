@@ -105,6 +105,166 @@ iframe {
     backdrop-filter: blur(2px);
 }
 
+/* --- NEW STYLES --- */
+
+.tab-nav {
+    display: flex;
+    background-color: #1e1e2e;
+    border-bottom: 1px solid #333;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 10px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #888;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.3s;
+}
+
+.tab-btn.active {
+    color: #fff;
+    border-bottom-color: #4f8ef7;
+    background-color: rgba(79, 142, 247, 0.1);
+}
+
+.tab-content {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.tab-content.active {
+    display: flex;
+}
+
+.feature-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    gap: 12px;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.input-row {
+    display: flex;
+    gap: 8px;
+}
+
+input[type="text"], textarea {
+    background-color: #2a2a3e;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: inherit;
+    outline: none;
+}
+
+input[type="text"]:focus, textarea:focus {
+    border-color: #4f8ef7;
+}
+
+#todo-input {
+    flex: 1;
+}
+
+button#add-todo-btn, button#clear-notes-btn {
+    background-color: #4f8ef7;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+button#add-todo-btn:hover, button#clear-notes-btn:hover {
+    background-color: #3a7de0;
+}
+
+#todo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.todo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #2a2a3e;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.todo-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.todo-item span {
+    flex: 1;
+    font-size: 14px;
+}
+
+.todo-item.done span {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+.todo-delete {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+}
+
+.todo-delete:hover {
+    color: #ff6b6b;
+}
+
+#notes-area {
+    flex: 1;
+    resize: none;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.notes-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+#notes-saved-indicator {
+    font-size: 11px;
+    color: #4caf50;
+    font-weight: 500;
+}
+
+button#clear-notes-btn {
+    background-color: #444;
+}
+
+button#clear-notes-btn:hover {
+    background-color: #555;
+}
+
 .drop-text {
     background: var(--accent-color);
     color: white;
