@@ -9,15 +9,15 @@
     <div class="tab-nav">
         <button class="tab-btn active" data-tab="gemini">🤖 Gemini</button>
         <button class="tab-btn" data-tab="todo">✅ Todo</button>
-        <button class="tab-btn" data-tab="notes">📝 Notlar</button>
+        <button class="tab-btn" data-tab="notes">📝 Notes</button>
     </div>
 
     <div id="tab-gemini" class="tab-content active">
         <div class="toolbar">
-            <button class="tool-btn" id="btn-summarize" title="Önemli noktalarıyla özetle">Özetle</button>
-            <button class="tool-btn" id="btn-yks" title="YKS müfredatına uygun anlat">YKS Tarzı</button>
-            <button class="tool-btn" id="btn-code" title="Kodu analiz et ve optimize et">Kod Analizi</button>
-            <button class="tool-btn" id="btn-think" title="Araştırmacı gözüyle teknik olarak analiz et">Sen Ne Düşünüyorsun?</button>
+            <button class="tool-btn" id="btn-summarize" title="Summarize with key points">Summarize</button>
+            <button class="tool-btn" id="btn-yks" title="Explain for exam curriculum">Exam Mode</button>
+            <button class="tool-btn" id="btn-code" title="Analyze and optimize code">Code Analysis</button>
+            <button class="tool-btn" id="btn-think" title="Technical analysis from researcher perspective">AI Thoughts</button>
         </div>
 
         <div id="drop-overlay">
@@ -37,8 +37,8 @@
     <div id="tab-todo" class="tab-content">
         <div class="feature-panel">
             <div class="input-row">
-                <input type="text" id="todo-input" placeholder="Yeni görev ekle...">
-                <button id="add-todo-btn">Ekle</button>
+                <input type="text" id="todo-input" placeholder="Add new task...">
+                <button id="add-todo-btn">Add</button>
             </div>
             <ul id="todo-list"></ul>
         </div>
@@ -46,10 +46,10 @@
 
     <div id="tab-notes" class="tab-content">
         <div class="feature-panel" style="flex: 1;">
-            <textarea id="notes-area" placeholder="Notlarınızı buraya yazın..."></textarea>
+            <textarea id="notes-area" placeholder="Write your notes here..."></textarea>
             <div class="notes-footer">
                 <span id="notes-saved-indicator"></span>
-                <button id="clear-notes-btn">Temizle</button>
+                <button id="clear-notes-btn">Clear</button>
             </div>
         </div>
     </div>

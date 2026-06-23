@@ -19,10 +19,10 @@ refreshBtn.addEventListener('click', () => {
 // --- TOOLBAR LOGIC ---
 
 const templates = {
-    summarize: "Aşağıdaki içeriği en önemli noktalarıyla özetle: ",
-    yks: "Bu konuyu bir 12. sınıf öğrencisi için YKS (TYT/AYT) müfredatına uygun, sade ve akademik derinliği koruyarak anlat: ",
-    code: "Bu kod bloğunun mantığını açıkla, varsa hataları bul ve daha optimize bir versiyonunu öner: ",
-    think: "Bu konuyu bir araştırmacı gözüyle teknik olarak analiz et: "
+    summarize: "Summarize the following content focusing on the most important points: ",
+    yks: "Explain this topic for a student following a standard curriculum (concise yet professional): ",
+    code: "Explain the logic of this code block, find any bugs, and suggest a more optimized version: ",
+    think: "Analyze this topic technically from a researcher's perspective: "
 };
 
 async function handleToolbarClick(type) {
@@ -217,13 +217,13 @@ async function loadNotes() {
 
 function saveNotes() {
     clearTimeout(saveTimeout);
-    notesIndicator.textContent = 'Kaydediliyor...';
+    notesIndicator.textContent = 'Saving...';
     
     saveTimeout = setTimeout(async () => {
         await chrome.storage.local.set({ notes: notesArea.value });
-        notesIndicator.textContent = '✓ Kaydedildi';
+        notesIndicator.textContent = '✓ Saved';
         setTimeout(() => {
-            if (notesIndicator.textContent === '✓ Kaydedildi') {
+            if (notesIndicator.textContent === '✓ Saved') {
                 notesIndicator.textContent = '';
             }
         }, 2000);
@@ -233,7 +233,7 @@ function saveNotes() {
 notesArea.addEventListener('input', saveNotes);
 
 clearNotesBtn.addEventListener('click', async () => {
-    if (confirm('Tüm notları silmek istediğinize emin misiniz?')) {
+    if (confirm('Are you sure you want to delete all notes?')) {
         await chrome.storage.local.set({ notes: '' });
         notesArea.value = '';
         notesIndicator.textContent = '';
