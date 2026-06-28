@@ -3,7 +3,26 @@ console.log('Gemini Extension v3.9 Active - sidepanel.js');
 const iframe = document.getElementById('geminiFrame');
 const refreshBtn = document.getElementById('refreshBtn');
 const dropOverlay = document.getElementById('drop-overlay');
+const warningBanner = document.getElementById('warning-banner');
+const warningMessage = document.getElementById('warning-message');
+const closeWarningBtn = document.getElementById('close-warning-btn');
 const DEFAULT_URL = "https://gemini.google.com/app";
+
+let warningTimeout = null;
+function showWarningBanner(msg) {
+    warningMessage.textContent = msg;
+    warningBanner.style.display = 'flex';
+    
+    if (warningTimeout) clearTimeout(warningTimeout);
+    warningTimeout = setTimeout(() => {
+        warningBanner.style.display = 'none';
+    }, 8000);
+}
+
+closeWarningBtn.addEventListener('click', () => {
+    warningBanner.style.display = 'none';
+    if (warningTimeout) clearTimeout(warningTimeout);
+});
 
 /**
  * INITIALIZATION-ONLY LOAD (v3.5)
@@ -25,37 +44,40 @@ const templates = {
     think: "Analyze this topic technically from a researcher's perspective: "
 };
 
-async function handleToolbarClick(type) {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
-    if (!tab) return;
+async function handleToolbarButtonClick(promptPrefix) {
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab || tab.url.startsWith('chrome') || tab.url.startsWith('about')) {
+            showWarningBanner("Lütfen geçerli bir web sayfasında bu butonu kullanın.");
+            return;
+        }
 
-    chrome.storage.local.get(['pendingPrompt'], async (result) => {
-        let baseText = result.pendingPrompt || "";
-        
-        if (!baseText && !tab.url.startsWith('chrome')) {
-            try {
-                const res = await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    func: () => window.getSelection().toString() || document.body.innerText
-                });
-                baseText = res[0]?.result || "";
-            } catch (e) {
-                console.warn('Failed to capture context from page.');
+        // activeTab izni kontrolü ile sayfa text'ini okuma hamlesi
+        chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => window.getSelection().toString() || document.body.innerText
+        }, (results) => {
+            if (chrome.runtime.lastError || !results || !results[0]) {
+                // activeTab tetiklenmediğinde banner'ı gösterir
+                showWarningBanner("Lütfen metni seçip sağ tıklayın veya Alt+Q kısayolunu kullanın");
+                return;
             }
-        }
-
-        if (baseText) {
-            const finalPrompt = templates[type] + baseText;
-            chrome.storage.local.set({ pendingPrompt: finalPrompt });
-        }
-    });
+            
+            const pageText = results[0].result;
+            if (pageText) {
+                chrome.storage.local.set({ pendingPrompt: `${promptPrefix}:\n\n${pageText}` });
+            }
+        });
+    } catch (err) {
+        console.error("Error executing toolbar action:", err);
+        showWarningBanner("Lütfen metni seçip sağ tıklayın veya Alt+Q kısayolunu kullanın");
+    }
 }
 
-document.getElementById('btn-summarize').addEventListener('click', () => handleToolbarClick('summarize'));
-document.getElementById('btn-yks').addEventListener('click', () => handleToolbarClick('yks'));
-document.getElementById('btn-code').addEventListener('click', () => handleToolbarClick('code'));
-document.getElementById('btn-think').addEventListener('click', () => handleToolbarClick('think'));
+document.getElementById('btn-summarize').addEventListener('click', () => handleToolbarButtonClick(templates.summarize));
+document.getElementById('btn-yks').addEventListener('click', () => handleToolbarButtonClick(templates.yks));
+document.getElementById('btn-code').addEventListener('click', () => handleToolbarButtonClick(templates.code));
+document.getElementById('btn-think').addEventListener('click', () => handleToolbarButtonClick(templates.think));
 
 // --- ROBUST DRAG AND DROP OVERLAY BRIDGE (v3.9) ---
 
@@ -93,22 +115,7 @@ dropOverlay.addEventListener('drop', async (e) => {
     dropOverlay.style.display = 'none';
     iframe.style.setProperty('pointer-events', 'auto', 'important');
     
-    let droppedText = e.dataTransfer.getData('text');
-    
-    // Cross-Origin Bridge: If text is empty due to security, ask the content script
-    if (!droppedText) {
-        try {
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tabs[0] && !tabs[0].url.startsWith('chrome')) {
-                const response = await chrome.tabs.sendMessage(tabs[0].id, { type: "GET_DRAGGED_TEXT" });
-                if (response && response.text) {
-                    droppedText = response.text;
-                }
-            }
-        } catch (err) {
-            console.warn("Gemini Extension: Failed to fetch dragged text via bridge.", err);
-        }
-    }
+    let droppedText = e.dataTransfer.getData('text') || e.dataTransfer.getData('text/plain');
 
     if (droppedText) {
         console.log('Gemini Extension: Text captured, injecting...');

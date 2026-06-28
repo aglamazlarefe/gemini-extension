@@ -332,3 +332,59 @@ button#clear-notes-btn:hover {
     font-weight: 600;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
+
+/* Warning Notification Banner */
+.notification-banner {
+    display: none;
+    position: absolute;
+    top: 48px; /* Placed right below the toolbar */
+    left: 8px;
+    right: 8px;
+    background-color: #f59e0b; /* Vibrant amber warning color */
+    color: #1e1e1e;
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    font-size: 11px;
+    font-weight: 600;
+    z-index: 10000;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideDown 0.3s ease;
+    border-left: 4px solid #b45309;
+}
+
+.notification-banner span {
+    flex: 1;
+    margin-right: 8px;
+    line-height: 1.4;
+}
+
+.notification-banner button {
+    background: transparent;
+    border: none;
+    color: #1e1e1e;
+    font-size: 18px;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s;
+}
+
+.notification-banner button:hover {
+    opacity: 0.7;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

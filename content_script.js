@@ -1,32 +1,5 @@
-console.log('Gemini Extension v3.9 Active - content_script.js');
+console.log('Gemini Extension v4.0 Active - content_script.js');
 
-// --- 0. GLOBAL DRAG LISTENER (v3.9 BRIDGE) ---
-let lastDraggedText = "";
-
-window.addEventListener('dragstart', (e) => {
-    let text = window.getSelection().toString();
-    if (!text && e.target && e.target.innerText) {
-        text = e.target.innerText;
-    }
-    if (text) {
-        lastDraggedText = text;
-        console.log("Gemini Extension: Captured dragged text");
-    }
-});
-
-window.addEventListener('dragend', () => {
-    // Keep it briefly in case the drop event needs it immediately after
-    setTimeout(() => { lastDraggedText = ""; }, 1000); 
-});
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "GET_DRAGGED_TEXT") {
-        sendResponse({ text: lastDraggedText });
-        return true; 
-    }
-});
-
-// --- GEMINI SPECIFIC LOGIC ---
 if (window.location.href.includes("gemini.google.com")) {
     
     // 1. URL TRACKING LOGIC
@@ -43,8 +16,7 @@ if (window.location.href.includes("gemini.google.com")) {
     urlObserver.observe(document.querySelector('head') || document.documentElement, { childList: true, subtree: true });
     reportUrlChange();
 
-
-    // 2. RESILIENT PROMPT INJECTION (v3.9)
+    // 2. RESILIENT PROMPT INJECTION
     function injectPromptWithRetry(promptText) {
       const selectors = [
         'div[contenteditable="true"]',
@@ -72,18 +44,14 @@ if (window.location.href.includes("gemini.google.com")) {
 
             if (inputField) {
               inputField.focus();
-
-              // NATIVE INSERTION
               document.execCommand('insertText', false, promptText);
 
-              // STRICT EVENT DISPATCH SEQUENCE (v3.9)
               const eventsToDispatch = ['keydown', 'input', 'keyup', 'change'];
               eventsToDispatch.forEach(type => {
                 const event = new Event(type, { bubbles: true, cancelable: true });
                 inputField.dispatchEvent(event);
               });
 
-              // AUTO-SUBMIT
               setTimeout(() => {
                   const sendButton = document.querySelector('button[aria-label*="Send"], button[aria-label*="Gönder"], .send-button');
                   if (sendButton && !sendButton.disabled) {
