@@ -10,11 +10,9 @@
   },
   "permissions": [
     "sidePanel",
-    "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
     "storage",
     "contextMenus",
-    "clipboardWrite",
     "scripting",
     "activeTab"
   ],
@@ -66,8 +64,9 @@
       "js": [
         "content_script.js"
       ],
-      "all_frames": true,
+      "all_frames": false,
       "run_at": "document_start"
     }
-  ]
+  ],
+  "minimum_chrome_version": "114"
 }

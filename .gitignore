@@ -1,0 +1,15 @@
+# Chrome generated files
+_metadata/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Extension build artifacts
+*.zip
+*.crx
+*.pem
