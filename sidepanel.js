@@ -1,5 +1,3 @@
-console.log('Gemini Extension v4.0 Active - sidepanel.js');
-
 const iframe = document.getElementById('geminiFrame');
 const refreshBtn = document.getElementById('refreshBtn');
 const dropOverlay = document.getElementById('drop-overlay');
@@ -32,14 +30,11 @@ chrome.storage.local.get(['lastGeminiUrl'], (result) => {
 });
 
 refreshBtn.addEventListener('click', () => {
-    // Refresh preserving the current Gemini in-app URL (not the initial src attribute)
-    try {
-        const currentSrc = iframe.contentWindow?.location?.href;
-        iframe.src = currentSrc || iframe.src || DEFAULT_URL;
-    } catch (e) {
-        // Cross-origin error when iframe is on a different origin; fall back to reloading current src
-        iframe.src = iframe.src || DEFAULT_URL;
-    }
+    // The panel cannot read the cross-origin iframe's location. The current chat URL is
+    // reported by content_script.js and saved as lastGeminiUrl, so reload that.
+    chrome.storage.local.get(['lastGeminiUrl'], (result) => {
+        iframe.src = result.lastGeminiUrl || DEFAULT_URL;
+    });
 });
 
 // --- TOOLBAR LOGIC ---
@@ -51,43 +46,50 @@ const templates = {
     think: "Analyze this topic technically from a researcher's perspective:\n\n"
 };
 
+const MSG_INVALID_PAGE = "Open a regular web page to use this button.";
+const MSG_USE_SHORTCUT = "Select text and right-click, or press Alt+Q.";
+const MSG_NO_PERMISSION = "Page access was not granted. Select text and right-click, or press Alt+Q.";
+const MAX_PROMPT_CHARS = 512000; // keeps storage.local well under its quota
+
+function savePendingPrompt(text) {
+    const trimmed = text.length > MAX_PROMPT_CHARS ? text.slice(0, MAX_PROMPT_CHARS) : text;
+    chrome.storage.local.set({ pendingPrompt: trimmed }).catch((err) => {
+        console.error("Failed to save pendingPrompt:", err);
+    });
+}
+
 async function handleToolbarButtonClick(promptPrefix) {
     try {
+        // A click inside the side panel does NOT grant activeTab (only the toolbar icon, a
+        // context-menu item or a keyboard shortcut do). Reading the page therefore needs the
+        // optional host permission. permissions.request() needs the user gesture, so it must
+        // be the first call here, before any other await. Once granted it no longer prompts.
+        const granted = await chrome.permissions.request({ origins: ['<all_urls>'] });
+        if (!granted) {
+            showWarningBanner(MSG_NO_PERMISSION);
+            return;
+        }
+
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-        // Safe URL check using optional chaining — tab.url may be undefined without "tabs" permission
-        if (!tab) {
-            showWarningBanner("Lütfen geçerli bir web sayfasında bu butonu kullanın.");
+        const url = tab?.url || '';
+        if (!tab || !/^(https?|file):/.test(url)) {
+            showWarningBanner(MSG_INVALID_PAGE);
             return;
         }
 
-        const url = tab.url || '';
-        if (url.startsWith('chrome') || url.startsWith('about') || url.startsWith('brave') || url.startsWith('edge')) {
-            showWarningBanner("Lütfen geçerli bir web sayfasında bu butonu kullanın.");
-            return;
-        }
-
-        // activeTab izni kontrolü ile sayfa text'ini okuma hamlesi
-        chrome.scripting.executeScript({
+        const results = await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: () => window.getSelection().toString() || document.body.innerText
-        }, (results) => {
-            if (chrome.runtime.lastError || !results || !results[0]) {
-                // activeTab tetiklenmediğinde banner'ı gösterir
-                showWarningBanner("Lütfen metni seçip sağ tıklayın veya Alt+Q kısayolunu kullanın");
-                return;
-            }
-
-            const pageText = results[0].result;
-            if (pageText) {
-                // Limit text to 500KB to stay within storage.local quota (10MB total)
-                const trimmed = pageText.length > 512000 ? pageText.slice(0, 512000) : pageText;
-                chrome.storage.local.set({ pendingPrompt: `${promptPrefix}${trimmed}` });
-            }
         });
+        const pageText = results?.[0]?.result;
+        if (pageText) {
+            savePendingPrompt(`${promptPrefix}${pageText}`);
+        } else {
+            showWarningBanner(MSG_USE_SHORTCUT);
+        }
     } catch (err) {
         console.error("Error executing toolbar action:", err);
-        showWarningBanner("Lütfen metni seçip sağ tıklayın veya Alt+Q kısayolunu kullanın");
+        showWarningBanner(MSG_USE_SHORTCUT);
     }
 }
 
@@ -148,10 +150,7 @@ dropOverlay.addEventListener('drop', (e) => {
     let droppedText = e.dataTransfer.getData('text') || e.dataTransfer.getData('text/plain');
 
     if (droppedText) {
-        console.log('Gemini Extension: Text captured, injecting...');
-        // Limit text to 500KB
-        const trimmed = droppedText.length > 512000 ? droppedText.slice(0, 512000) : droppedText;
-        chrome.storage.local.set({ pendingPrompt: trimmed });
+        savePendingPrompt(droppedText);
     }
 });
 
@@ -195,15 +194,6 @@ async function loadTodos() {
     } catch (err) {
         console.error("Failed to load todos:", err);
     }
-}
-
-function createSafeElement(tag, attrs = {}, text = '') {
-    const el = document.createElement(tag);
-    for (const [key, val] of Object.entries(attrs)) {
-        el.setAttribute(key, val);
-    }
-    if (text) el.textContent = text;
-    return el;
 }
 
 function renderTodos(todos) {
