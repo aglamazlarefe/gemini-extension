@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Side Panel",
-  "version": "4.0",
+  "version": "4.1",
   "description": "Opens Gemini in the side panel with session persistence and smart productivity tools.",
   "icons": {
     "16": "icon.png",
@@ -18,6 +18,9 @@
   ],
   "host_permissions": [
     "https://gemini.google.com/*"
+  ],
+  "optional_host_permissions": [
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
@@ -64,9 +67,9 @@
       "js": [
         "content_script.js"
       ],
-      "all_frames": false,
+      "all_frames": true,
       "run_at": "document_start"
     }
   ],
-  "minimum_chrome_version": "114"
+  "minimum_chrome_version": "116"
 }

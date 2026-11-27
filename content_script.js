@@ -1,10 +1,23 @@
-console.log('Gemini Extension v4.0 Active - content_script.js');
+// This script is injected into every gemini.google.com frame (manifest: all_frames: true),
+// but it must only act inside the Gemini iframe of OUR side panel. Otherwise prompts would be
+// auto-sent into every ordinary Gemini tab the user has open.
+//
+// location.ancestorOrigins[0] is the origin of the direct parent frame. For the side panel
+// iframe that is this extension's own chrome-extension:// origin.
+function isInsideOurSidePanel() {
+    if (window.top === window) return false; // a normal Gemini tab, not an iframe
+    const ancestors = window.location.ancestorOrigins;
+    if (!ancestors || ancestors.length === 0) return false;
+    return ancestors[0] === `chrome-extension://${chrome.runtime.id}`;
+}
 
-// Check hostname (not full URL) to avoid substring-match false positives
-if (window.location.hostname === "gemini.google.com") {
+if (window.location.hostname === "gemini.google.com" && isInsideOurSidePanel()) {
 
     // 1. URL TRACKING LOGIC
-    let lastUrl = window.location.href;
+    // Gemini is a single-page app: opening a chat changes the URL with history.pushState,
+    // which fires no popstate. The Navigation API reports those changes too (Chrome 102+).
+    // lastUrl starts empty so the URL the panel loaded is reported once.
+    let lastUrl = '';
     const reportUrlChange = () => {
         const currentUrl = window.location.href;
         if (currentUrl !== lastUrl) {
@@ -15,23 +28,10 @@ if (window.location.hostname === "gemini.google.com") {
             });
         }
     };
-    window.addEventListener('popstate', reportUrlChange);
-
-    // Narrow MutationObserver scope: only observe <title> for SPA navigation changes
-    // This is much cheaper than observing <head> with subtree:true
-    const titleEl = document.querySelector('title');
-    let urlObserver = null;
-    if (titleEl) {
-        urlObserver = new MutationObserver(() => reportUrlChange());
-        urlObserver.observe(titleEl, { childList: true });
-    } else {
-        // Fallback: observe head with reduced scope
-        const head = document.querySelector('head');
-        if (head) {
-            urlObserver = new MutationObserver(() => reportUrlChange());
-            urlObserver.observe(head, { childList: true, subtree: false });
-        }
+    if (window.navigation) {
+        window.navigation.addEventListener('currententrychange', reportUrlChange);
     }
+    window.addEventListener('popstate', reportUrlChange);
     reportUrlChange();
 
     // 2. RESILIENT PROMPT INJECTION

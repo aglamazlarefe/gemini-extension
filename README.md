@@ -4,7 +4,7 @@
 
 # Gemini Side Panel
 
-[![Version](https://img.shields.io/badge/Version-3.5-blue.svg)](https://github.com/aglamazlarefe/gemini-extension/releases)
+[![Version](https://img.shields.io/badge/Version-4.1-blue.svg)](https://github.com/aglamazlarefe/gemini-extension/releases)
 [![Manifest](https://img.shields.io/badge/Manifest-V3-orange.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![Compatibility](https://img.shields.io/badge/Compatibility-Brave%20%7C%20Chrome-success.svg)](https://github.com/aglamazlarefe/gemini-extension)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -13,47 +13,45 @@
 
 ---
 
-## 💎 Key Pillars
+## 🚀 Features
 
-- **Stability**: Robust polling and "Write-Only" security architecture prevent cross-origin errors and session loops.
-- **Security**: Operates with strict adherence to Chromium's Manifest V3 security standards, ensuring user data privacy.
-- **Speed**: Optimized injection engine ensures zero-latency prompt delivery even behind Brave's aggressive Shields.
+| Feature | Description |
+| :--- | :--- |
+| **Send selection to Gemini** | Select text, then right-click → *Explain selection with Gemini* or press `Alt+Q`. The panel opens and the text is typed into Gemini and sent. |
+| **Productivity toolbar** | One-click prompts that take the current page's selection (or the whole page text) and prepend an instruction. |
+| **Drag and drop** | Drop text onto the panel to send it to Gemini. |
+| **Session persistence** | The panel reopens the last Gemini chat you had open in it. |
+| **Todo and Notes tabs** | A simple task list and a notes pad, saved locally in the browser. |
 
----
+### 🛠 Toolbar buttons
+- **Summarize**: key points of the selected text or page.
+- **Exam Mode**: explains a topic for a student (concise but precise).
+- **Code Analysis**: explains code, looks for bugs and suggests an optimized version.
+- **AI Thoughts**: a technical analysis from a researcher's perspective.
 
-## 🚀 Feature Showcase
-
-| Feature | Description | Emojis |
-| :--- | :--- | :---: |
-| **Context-Aware Trigger** | Instantly analyze selected text or entire pages with a single shortcut. | 🧠⚡ |
-| **Smart Productivity Toolbar** | One-click actions for Summarization, Code Analysis, and Academic Deep-Dives. | 🛠️📑 |
-| **Zero-Reload Architecture** | Advanced state management prevents infinite refresh loops and ensures persistence. | 🔄🚫 |
-| **Resilient Injection** | Robust polling (800ms) ensures prompts reach Gemini even if the UI is slow to load. | 🛡️🛰️ |
-| **Session Persistence** | Resumes exactly where you left off, maintaining your ongoing research flow. | 💾📈 |
-
-### 🛠 Smart Toolbar Breakdown
-- **Summarize**: Condense arXiv papers or long articles into key bullet points.
-- **YKS-Style Explain**: Simplifies complex academic topics for students preparing for higher-level exams (TYT/AYT).
-- **Code Analysis**: Deep-dive into logic, bug detection, and optimization suggestions for developers.
-- **Technical Analysis**: A researcher-focused analysis of the strengths and weaknesses of any technical document.
+The first time you use a toolbar button, the browser asks for permission to read pages. A click inside the side panel does not grant the temporary `activeTab` permission, so this optional permission is the only way for the buttons to read the page. If you decline, the right-click menu and `Alt+Q` keep working without it.
 
 ---
 
 ## ⌨️ Keyboard Shortcuts
 
-| Shortcut | Action | Description |
-| :--- | :--- | :--- |
-| `Alt + S` | **Toggle Panel** | Instantly opens or closes the Gemini Side Panel. |
-| `Alt + Q` | **AI Context Trigger** | Captures selection (or page) and forces a *New Chat* in Gemini. |
+| Shortcut | Action |
+| :--- | :--- |
+| `Alt + S` | Open the Gemini side panel. |
+| `Alt + Q` | Open the panel and send the selected text to Gemini (in the chat currently open in the panel). |
+
+Shortcuts can be changed at `chrome://extensions/shortcuts`.
 
 ---
 
-## ⚙️ Under The Hood (Engineering Depth)
+## ⚙️ How it works
 
-The Gemini Side Panel utilizes a sophisticated **Asynchronous Injection Engine** designed to handle the challenges of modern web security:
-- **Brave Shield Compatibility**: The extension implements silent error-handling to bypass `ERR_BLOCKED_BY_CLIENT` warnings caused by tracker blocking, focusing purely on operational logic.
-- **Native Input Simulation**: By utilizing `document.execCommand('insertText')` combined with synthetic event dispatching, the extension ensures that Gemini's internal state (React/Angular) reflects the injected prompt immediately.
-- **Synchronous Gesture Preservation**: Special care is taken to call `chrome.sidePanel.open` synchronously at the exact moment of user input (`onCommand`), ensuring the "User Gesture" token never expires.
+- `sidepanel.html` embeds `https://gemini.google.com/app` in an iframe. `rules.json` removes the `X-Frame-Options` and `Content-Security-Policy` response headers on Gemini sub-frames so the page can load inside the panel.
+- Text to send is written to `chrome.storage.local.pendingPrompt` (by `background.js` or `sidepanel.js`).
+- `content_script.js` runs in Gemini frames but only acts inside the panel's own iframe (it checks that the parent frame is this extension). It types the prompt into Gemini's input with `document.execCommand('insertText')` and clicks Send. It also reports the current chat URL so the panel can reopen it.
+- `chrome.sidePanel.open()` is called first in the context-menu and `Alt+Q` handlers, because Chrome only allows it in direct response to a user action.
+
+Requires Chrome 116 or newer (or a Chromium browser such as Brave).
 
 ---
 
@@ -66,6 +64,10 @@ The Gemini Side Panel utilizes a sophisticated **Asynchronous Injection Engine**
 2. **Open Extensions Page**: Navigate to `brave://extensions/` or `chrome://extensions/`.
 3. **Enable Developer Mode**: Toggle the switch in the top right corner.
 4. **Load Unpacked**: Click "Load Unpacked" and select the root directory of this repository.
+
+## 📦 Building the Chrome Web Store zip
+
+Run `powershell -ExecutionPolicy Bypass -File paketle.ps1`. It writes `dist/gemini-side-panel-<version>.zip` containing only the files the extension needs (no `.git`, no `_metadata`).
 
 ---
 

@@ -10,6 +10,7 @@ Thumbs.db
 .idea/
 
 # Extension build artifacts
+dist/
 *.zip
 *.crx
 *.pem
